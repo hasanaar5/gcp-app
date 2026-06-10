@@ -1,6 +1,16 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build','-t','us-central1-docker.pkg.dev/new-project-499004/gcp-app/app:latest','.']
+  args:
+    - build
+    - -t
+    - us-central1-docker.pkg.dev/new-project-499004/gcp-app/app:latest
+    - .
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push','us-central1-docker.pkg.dev/new-project-499004/gcp-app/app:latest']
+  args:
+    - push
+    - us-central1-docker.pkg.dev/new-project-499004/gcp-app/app:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
