@@ -1,18 +1,45 @@
 steps:
+# ✅ Step 1: Build
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - build
     - -t
-    - asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:latest
+    - asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:$COMMIT_SHA
     - .
 
+# ✅ Step 2: Push
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - push
-    - asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:latest
+    - asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:$COMMIT_SHA
+
+# ✅ Step 3: Deploy using bash (THIS IS WHAT YOU SAW)
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: bash
+  args:
+    - '-c'
+    - |
+      echo "🚀 Starting deployment..."
+
+      # Create new instance template
+      gcloud compute instance-templates create app-template-$COMMIT_SHA \
+        --machine-type=e2-medium \
+        --image-family=cos-stable \
+        --image-project=cos-cloud \
+        --metadata=startup-script="#! /bin/bash
+      docker run -d -p 80:8080 asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:$COMMIT_SHA"
+
+      # Rolling update on MIG (ZERO DOWNTIME)
+      gcloud compute instance-groups managed rolling-action start-update app-mig \
+        --version=template=app-template-$COMMIT_SHA \
+        --zone=asia-south1-a \
+        --max-unavailable=0 \
+        --max-surge=1
+
+      echo "✅ Deployment completed"
 
 images:
-- asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:latest
+- asia-south1-docker.pkg.dev/new-project-499004/gcp-app/app:$COMMIT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
